@@ -34,12 +34,12 @@ module.exports.likeCard = (req, res) => {
   Card.findByIdAndUpdate(req.params.id, { $addToSet: { likes: req.user._id } }, { new: true })
     .orFail(() => new Error(`Карточка с _id ${req.params.id} не найдена`))
     .then((card) => res.send({ data: card }))
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: err.message }) : res.status(404).send({ message: err.message })));
+    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id карточки' }) : res.status(404).send({ message: err.message })));
 };
 
 module.exports.dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(req.params.id, { $pull: { likes: req.user._id } }, { new: true })
     .orFail(() => new Error(`Карточка с _id ${req.params.id} не найдена`))
     .then((card) => res.send({ data: card }))
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: err.message }) : res.status(404).send({ message: err.message })));
+    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id карточки' }) : res.status(404).send({ message: err.message })));
 };

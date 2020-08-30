@@ -8,15 +8,19 @@ module.exports.getUsers = (req, res) => {
     .catch((err) => res.status(500).send({ message: err.message }));
 };
 module.exports.getUser = (req, res) => {
-  User.findById(req.params.id).orFail()
+  User.findById(req.params.id).orFail(() => new Error(`Пользователь с _id ${req.params.id} не найден`))
     .then((user) => res.send({ data: user }))
-    .catch(() => res.status(404).send({ message: 'Пользователя с таким id нет' }));
+    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id пользователя' }) : res.status(404).send({ message: err.message })));
 };
 
+// eslint-disable-next-line consistent-return
 module.exports.createUser = (req, res) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
+  if (!password) {
+    return res.status(400).send({ message: 'Формат пароля неверен' });
+  }
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
@@ -28,7 +32,7 @@ module.exports.createUser = (req, res) => {
       about: user.about,
       avatar: user.avatar,
     }))
-    .catch((err) => res.status(400).send({ message: err.message }));
+    .catch((err) => ((err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат данных пользователя' }) : res.status(409).send({ message: err.message })));
 };
 
 module.exports.login = (req, res) => {
@@ -58,9 +62,9 @@ module.exports.updateUser = (req, res) => {
       runValidators: true,
       upsert: true,
     })
-    .orFail()
+    .orFail(() => new Error(`Пользователь с _id ${req.user._id} не найдена`))
     .then((user) => res.send({ data: user }))
-    .catch(() => res.status(404).send({ message: 'Пользователя с таким id нет' }));
+    .catch((err) => ((err.name === 'CastError' || err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат id или данных пользователя' }) : res.status(404).send({ message: err.message })));
 };
 
 module.exports.updateUserAvatar = (req, res) => {
@@ -73,5 +77,5 @@ module.exports.updateUserAvatar = (req, res) => {
     })
     .orFail()
     .then((user) => res.send({ data: user }))
-    .catch((err) => res.status(404).send({ message: `Пользователя с таким id нет  ${err}` }));
+    .catch((err) => ((err.name === 'CastError' || err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат id или ссылки на avatar пользователя' }) : res.status(404).send({ message: err.message })));
 };

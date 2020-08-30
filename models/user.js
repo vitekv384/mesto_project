@@ -19,8 +19,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     validate: {
-      validator(link) {
-        return validator.isURL(link);
+      validator(avatar) {
+        return validator.isURL(avatar);
       },
       message: 'неверный формат Url',
     },
