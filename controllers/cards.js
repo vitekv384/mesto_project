@@ -11,7 +11,7 @@ module.exports.createCard = (req, res) => {
   const owner = req.user._id;
   Card.create({ name, link, owner })
     .then((card) => res.send({ data: card }))
-    .catch((err) => ((err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат данных карточки' }) : res.status(500).send({ message: err.message })));
+    .catch((err) => ((err.name === 'ValidationError') ? res.status(400).send({ message: `Ошибка валидации ${err.message}` }) : res.status(500).send({ message: err.message })));
 };
 
 module.exports.deleteCard = (req, res) => {
@@ -27,19 +27,33 @@ module.exports.deleteCard = (req, res) => {
         res.status(404).send({ message: 'Нет карточки для удаления' });
       }
     })
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id карточки' }) : res.status(500).send({ message: err.message })));
+    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: `Ошибка валидации id карточки ${err.message}` }) : res.status(500).send({ message: err.message })));
 };
 
 module.exports.likeCard = (req, res) => {
   Card.findByIdAndUpdate(req.params.id, { $addToSet: { likes: req.user._id } }, { new: true })
-    .orFail(() => new Error(`Карточка с _id ${req.params.id} не найдена`))
+    .orFail()
     .then((card) => res.send({ data: card }))
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id карточки' }) : res.status(404).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: `Ошибка валидации id карточки ${err.message}` });
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: err.message });
+      }
+      res.status(500).send({ message: err.message });
+    });
 };
 
 module.exports.dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(req.params.id, { $pull: { likes: req.user._id } }, { new: true })
-    .orFail(() => new Error(`Карточка с _id ${req.params.id} не найдена`))
+    .orFail()
     .then((card) => res.send({ data: card }))
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id карточки' }) : res.status(404).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: `Ошибка валидации id карточки ${err.message}` });
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: err.message });
+      }
+      res.status(500).send({ message: err.message });
+    });
 };

@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -10,6 +11,7 @@ const auth = require('./middlewares/auth');
 const { PORT = 3000 } = process.env;
 const app = express();
 
+app.use(helmet());
 app.use(bodyParser.json());
 app.use(cookieParser());
 

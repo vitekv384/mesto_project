@@ -9,9 +9,16 @@ module.exports.getUsers = (req, res) => {
     .catch((err) => res.status(500).send({ message: err.message }));
 };
 module.exports.getUser = (req, res) => {
-  User.findById(req.params.id).orFail(() => new Error(`Пользователь с _id ${req.params.id} не найден`))
+  User.findById(req.params.id).orFail()
     .then((user) => res.send({ data: user }))
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: 'Неверный формат id пользователя' }) : res.status(404).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: `Ошибка валидации id пользователя ${err.message}` });
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: err.message });
+      }
+      res.status(500).send({ message: err.message });
+    });
 };
 
 // eslint-disable-next-line consistent-return
@@ -33,7 +40,14 @@ module.exports.createUser = (req, res) => {
       about: user.about,
       avatar: user.avatar,
     }))
-    .catch((err) => ((err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат данных пользователя' }) : res.status(409).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      } else if (err.name === 'MongoError' && err.code === 11000) {
+        res.status(409).send({ message: 'Данный email уже используется' });
+      }
+      res.status(500).send({ message: err.message });
+    });
 };
 
 module.exports.login = (req, res) => {
@@ -63,9 +77,16 @@ module.exports.updateUser = (req, res) => {
       runValidators: true,
       upsert: true,
     })
-    .orFail(() => new Error(`Пользователь с _id ${req.user._id} не найдена`))
+    .orFail()
     .then((user) => res.send({ data: user }))
-    .catch((err) => ((err.name === 'CastError' || err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат id или данных пользователя' }) : res.status(404).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: err.message });
+      }
+      res.status(500).send({ message: err.message });
+    });
 };
 
 module.exports.updateUserAvatar = (req, res) => {
@@ -78,5 +99,12 @@ module.exports.updateUserAvatar = (req, res) => {
     })
     .orFail()
     .then((user) => res.send({ data: user }))
-    .catch((err) => ((err.name === 'CastError' || err.name === 'ValidationError') ? res.status(400).send({ message: 'Неверный формат id или ссылки на avatar пользователя' }) : res.status(404).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      } else if (err.name === 'DocumentNotFoundError') {
+        res.status(404).send({ message: err.message });
+      }
+      res.status(500).send({ message: err.message });
+    });
 };
