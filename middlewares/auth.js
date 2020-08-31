@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const key = require('../key');
 
 // eslint-disable-next-line consistent-return
 module.exports = (req, res, next) => {
@@ -6,7 +7,7 @@ module.exports = (req, res, next) => {
   let payload;
 
   try {
-    payload = jwt.verify(token, '8c89fa0ad811b3656cd95e2fea3877f76cce6d17483b083bfba6c8e6b9ff46b9');
+    payload = jwt.verify(token, key);
   } catch (err) {
     return res
       .status(401)
