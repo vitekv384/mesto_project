@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const key = require('../key');
@@ -13,15 +14,15 @@ module.exports.getUser = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: `Ошибка валидации id пользователя ${err.message}` });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: err.message });
+        return res.status(400).send({ message: `Ошибка валидации id пользователя ${req.params.id}` });
+      }
+      if (err.name === 'DocumentNotFoundError') {
+        return res.status(404).send({ message: `Пользователь c id ${req.params.id} не найден` });
       }
       res.status(500).send({ message: err.message });
     });
 };
 
-// eslint-disable-next-line consistent-return
 module.exports.createUser = (req, res) => {
   const {
     name, about, avatar, email, password,
@@ -42,9 +43,10 @@ module.exports.createUser = (req, res) => {
     }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
-      } else if (err.name === 'MongoError' && err.code === 11000) {
-        res.status(409).send({ message: 'Данный email уже используется' });
+        return res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      }
+      if (err.name === 'MongoError' && err.code === 11000) {
+        return res.status(409).send({ message: 'Данный email уже используется' });
       }
       res.status(500).send({ message: err.message });
     });
@@ -81,9 +83,10 @@ module.exports.updateUser = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: err.message });
+        return res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      }
+      if (err.name === 'DocumentNotFoundError') {
+        return res.status(404).send({ message: err.message });
       }
       res.status(500).send({ message: err.message });
     });
@@ -101,9 +104,10 @@ module.exports.updateUserAvatar = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: err.message });
+        return res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      }
+      if (err.name === 'DocumentNotFoundError') {
+        return res.status(404).send({ message: err.message });
       }
       res.status(500).send({ message: err.message });
     });

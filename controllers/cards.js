@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 const Card = require('../models/card');
 
 module.exports.getCards = (req, res) => {
@@ -11,12 +12,17 @@ module.exports.createCard = (req, res) => {
   const owner = req.user._id;
   Card.create({ name, link, owner })
     .then((card) => res.send({ data: card }))
-    .catch((err) => ((err.name === 'ValidationError') ? res.status(400).send({ message: `Ошибка валидации ${err.message}` }) : res.status(500).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+      } else {
+        res.status(500).send({ message: err.message });
+      }
+    });
 };
 
 module.exports.deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
-    // eslint-disable-next-line consistent-return
     .then((card) => {
       if (card !== null) {
         if (card.owner.toString() !== req.user._id) {
@@ -24,10 +30,16 @@ module.exports.deleteCard = (req, res) => {
         }
         res.status(200).send({ data: card });
       } else {
-        res.status(404).send({ message: 'Нет карточки для удаления' });
+        res.status(404).send({ message: `Карточка с id ${req.params.id} не найдена` });
       }
     })
-    .catch((err) => ((err.name === 'CastError') ? res.status(400).send({ message: `Ошибка валидации id карточки ${err.message}` }) : res.status(500).send({ message: err.message })));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: `Ошибка валидации id карточки ${req.params.id}` });
+      } else {
+        res.status(500).send({ message: err.message });
+      }
+    });
 };
 
 module.exports.likeCard = (req, res) => {
@@ -36,9 +48,10 @@ module.exports.likeCard = (req, res) => {
     .then((card) => res.send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: `Ошибка валидации id карточки ${err.message}` });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: err.message });
+        return res.status(400).send({ message: `Ошибка валидации id карточки ${req.params.id}` });
+      }
+      if (err.name === 'DocumentNotFoundError') {
+        return res.status(404).send({ message: `Карточка с id ${req.params.id} не найдена` });
       }
       res.status(500).send({ message: err.message });
     });
@@ -50,9 +63,10 @@ module.exports.dislikeCard = (req, res) => {
     .then((card) => res.send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: `Ошибка валидации id карточки ${err.message}` });
-      } else if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: err.message });
+        return res.status(400).send({ message: `Ошибка валидации id карточки ${req.params.id}` });
+      }
+      if (err.name === 'DocumentNotFoundError') {
+        return res.status(404).send({ message: `Карточка с id ${req.params.id} не найдена` });
       }
       res.status(500).send({ message: err.message });
     });
