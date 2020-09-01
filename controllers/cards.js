@@ -22,23 +22,22 @@ module.exports.createCard = (req, res) => {
 };
 
 module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.id)
+  Card.findOneAndDelete({ _id: req.params.id })
+    .orFail()
     .then((card) => {
-      if (card !== null) {
-        if (card.owner.toString() !== req.user._id) {
-          return res.status(403).send({ message: 'Нельзя удалить чужую карточку' });
-        }
-        res.status(200).send({ data: card });
-      } else {
-        res.status(404).send({ message: `Карточка с id ${req.params.id} не найдена` });
+      if (card.owner.toString() !== req.user._id) {
+        return res.status(403).send({ message: 'Нельзя удалить чужую карточку' });
       }
+      res.status(200).send({ data: card });
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(400).send({ message: `Ошибка валидации id карточки ${req.params.id}` });
-      } else {
-        res.status(500).send({ message: err.message });
+      if (err.name === 'DocumentNotFoundError') {
+        return res.status(404).send({ message: `Карточка с id ${req.params.id} не найдена` });
       }
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: `Ошибка валидации id карточки ${req.params.id}` });
+      }
+      res.status(500).send({ message: err.message });
     });
 };
 
