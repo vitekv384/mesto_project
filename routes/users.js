@@ -1,6 +1,6 @@
 const usersRouter = require('express').Router();
 const { celebrate, Joi } = require('celebrate');
-const urlValidation = require('../errors/url-validation');
+const urlValidator = require('../custom-validator');
 const {
   getUsers, getUser, updateUser, updateUserAvatar,
 } = require('../controllers/users');
@@ -19,7 +19,7 @@ usersRouter.patch('/me', celebrate({
 }), updateUser);
 usersRouter.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().required().custom((value) => urlValidation(value)),
+    avatar: Joi.string().required().custom((link) => urlValidator(link)),
   }),
 }), updateUserAvatar);
 
