@@ -1,34 +1,38 @@
 /* eslint-disable consistent-return */
+require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const key = require('../key');
 const User = require('../models/user');
+const NotFoundError = require('../errors/not-found-error');
+const BadRequestError = require('../errors/bad-request-error');
+const NotAutorizedError = require('../errors/not-autorized-error');
 
-module.exports.getUsers = (req, res) => {
+const { NODE_ENV, JWT_SECRET } = process.env;
+
+module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(next);
 };
-module.exports.getUser = (req, res) => {
+module.exports.getUser = (req, res, next) => {
   User.findById(req.params.id).orFail()
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({ message: `Ошибка валидации id пользователя ${req.params.id}` });
+        return next(new BadRequestError(`Ошибка валидации id пользователя ${req.params.id}`));
       }
       if (err.name === 'DocumentNotFoundError') {
-        return res.status(404).send({ message: `Пользователь c id ${req.params.id} не найден` });
+        return next(new NotFoundError(`Пользователь c id ${req.params.id} не найден`));
       }
-      res.status(500).send({ message: err.message });
     });
 };
 
-module.exports.createUser = (req, res) => {
+module.exports.createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
   if (!password) {
-    return res.status(400).send({ message: 'Формат пароля неверен' });
+    throw new NotFoundError('Формат пароля неверен');
   }
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
@@ -43,20 +47,24 @@ module.exports.createUser = (req, res) => {
     }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+        return next(new BadRequestError(`Ошибка валидации ${err.message}`));
       }
       if (err.name === 'MongoError' && err.code === 11000) {
-        return res.status(409).send({ message: 'Данный email уже используется' });
+        const e = new Error('Данный email уже используется');
+        e.statusCode = 409;
+        return next(e);
       }
-      res.status(500).send({ message: err.message });
+      next(err);
     });
 };
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, key, { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id },
+        NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret',
+        { expiresIn: '7d' });
       res.cookie('jwt', token, {
         maxAge: 604800,
         httpOnly: true,
@@ -65,13 +73,12 @@ module.exports.login = (req, res) => {
       res.send({ token });
     })
     .catch((err) => {
-      res
-        .status(401)
-        .send({ message: err.message });
+      const e = (new NotAutorizedError(`${err.message}`));
+      next(e);
     });
 };
 
-module.exports.updateUser = (req, res) => {
+module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, about },
     {
@@ -83,16 +90,15 @@ module.exports.updateUser = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+        return next(new BadRequestError(`Ошибка валидации ${err.message}`));
       }
       if (err.name === 'DocumentNotFoundError') {
-        return res.status(404).send({ message: err.message });
+        return next(new NotFoundError(`${err.message}`));
       }
-      res.status(500).send({ message: err.message });
     });
 };
 
-module.exports.updateUserAvatar = (req, res) => {
+module.exports.updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(req.user._id, { avatar },
     {
@@ -104,11 +110,10 @@ module.exports.updateUserAvatar = (req, res) => {
     .then((user) => res.send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({ message: `Ошибка валидации ${err.message}` });
+        return next(new BadRequestError(`Ошибка валидации ${err.message}`));
       }
       if (err.name === 'DocumentNotFoundError') {
-        return res.status(404).send({ message: err.message });
+        return next(new NotFoundError(`${err.message}`));
       }
-      res.status(500).send({ message: err.message });
     });
 };
